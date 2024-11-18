@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS ciudades (
+    ciudad_id INT AUTO_INCREMENT PRIMARY KEY,
+    ciudad VARCHAR(256))
+;
