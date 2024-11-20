@@ -401,15 +401,10 @@ def main():
         # Botones para predecir con RNN y LSTM
         if st.button('Predecir datos con RNN'):
             predicted_temperature_rnn = predict_and_display('modelo_RNN.pkl')
+            st.write(f'Predicción de temperatura con RNN: {predicted_temperature_rnn[0][0]} °C')
 
         if st.button('Predecir datos con LSTM'):
             predicted_temperature_lstm = predict_and_display('modelo_LSTM.pkl')
-
-        # Mostrar predicciones si están disponibles
-        if predicted_temperature_rnn is not None:
-            st.write(f'Predicción de temperatura con RNN: {predicted_temperature_rnn[0][0]} °C')
-
-        if predicted_temperature_lstm is not None:
             st.write(f'Predicción de temperatura con LSTM: {predicted_temperature_lstm[0][0]} °C')
 
 
