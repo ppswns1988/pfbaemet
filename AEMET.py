@@ -18,8 +18,8 @@ def main():
 
     engine = create_engine('mysql+pymysql://root:Estela080702.@localhost:3306/AEMET?charset=utf8')
 
-    menu = ['Inicio', 'Valores climatológicos por comunidad', 'Comparador de valores climatológicos',
-            'Mapa coroplético','Predicción meteorológica']
+    menu = ['Inicio','Predicción del tiempo', 'Valores climatológicos por comunidad', 'Comparador de valores climatológicos',
+            'Mapa coroplético']
 
     choice = st.sidebar.selectbox("Selecciona una opción", menu, key="menu_selectbox_unique")
 
@@ -372,38 +372,45 @@ def main():
         # streamlit_folium
         st_folium(mapa_espana, width=725)
 
+    if choice=="Predicción del tiempo":
 
-
-    if choice == "Predicción meteorológica":
         def predict_temperature(model_path, scaler_path, input_data):
             model = joblib.load(model_path)
-            scaler = joblib.load(scaler_path)  # Cargar el scaler entrenado
-            input_data_scaled = scaler.transform(input_data)  # Usar transform en lugar de fit_transform
+            scaler = joblib.load(scaler_path)
 
-            # Verificar las dimensiones de input_data_scaled
-            if input_data_scaled.ndim == 1:
-                # Si es un array unidimensional, convertirlo a 2D
-                input_data_scaled = input_data_scaled.reshape(1, -1)  # 1 muestra, n características
-            elif input_data_scaled.ndim == 2:
-                # Si ya es 2D, asegurarse de que tenga la forma correcta
-                input_data_scaled = input_data_scaled.reshape(1, input_data_scaled.shape[0], input_data_scaled.shape[1])
+            input_data = input_data.reshape(1, -1)
+            input_data_scaled = scaler.transform(input_data)
+            input_data_scaled = input_data_scaled.reshape(1, input_data_scaled.shape[0], input_data_scaled.shape[1])
 
             predicted_temperature = model.predict(input_data_scaled)
             return scaler.inverse_transform(predicted_temperature)
 
-        # Botón para predecir con RNN
-        if st.button('Predecir datos con RNN'):
-            st.title('Predicción de la temperatura de mañana')
-            input_data = np.array([[tmed]])
-            predicted_temperature = predict_temperature('modelo_RNN.pkl', 'scaler.pkl', input_data)
-            st.write(f'Predicción de temperatura para el día siguiente: {predicted_temperature[0][0]} °C')
+        estimated_temperature_tomorrow = 27
 
-        # Botón para predecir con LSTM
+        # Inicializar variables para las predicciones
+        predicted_temperature_rnn = None
+        predicted_temperature_lstm = None
+
+        st.markdown('#### Predicción de la temperatura de mañana')
+
+        # Función para predecir la temperatura
+        def predict_and_display(model_file):
+            input_data = np.array([[estimated_temperature_tomorrow]])
+            return predict_temperature(model_file, 'scaler.pkl', input_data)
+
+        # Botones para predecir con RNN y LSTM
+        if st.button('Predecir datos con RNN'):
+            predicted_temperature_rnn = predict_and_display('modelo_RNN.pkl')
+
         if st.button('Predecir datos con LSTM'):
-            st.title('Predicción de la temperatura de mañana')
-            input_data = np.array([[tmed]])
-            predicted_temperature = predict_temperature('modelo_LSTM.pkl', 'scaler.pkl', input_data)
-            st.write(f'Predicción de temperatura para el día siguiente: {predicted_temperature[0][0]} °C')
+            predicted_temperature_lstm = predict_and_display('modelo_LSTM.pkl')
+
+        # Mostrar predicciones si están disponibles
+        if predicted_temperature_rnn is not None:
+            st.write(f'Predicción de temperatura con RNN: {predicted_temperature_rnn[0][0]} °C')
+
+        if predicted_temperature_lstm is not None:
+            st.write(f'Predicción de temperatura con LSTM: {predicted_temperature_lstm[0][0]} °C')
 
 
 
