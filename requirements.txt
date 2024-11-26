@@ -1,0 +1,13 @@
+pandas
+numpy
+folium
+streamlit
+matplotlib
+plotly
+pymysql
+streamlit
+streamlit-folium
+mysql-connector-python
+mysq
+jsonschema
+datetime
