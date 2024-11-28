@@ -1,5 +1,7 @@
 import pandas as pd
 import matplotlib as plt
+import matplotlib.pyplot as plt
+from streamlit import button
 from streamlit_folium import st_folium
 import streamlit as st
 import plotly.graph_objects as go
@@ -7,16 +9,18 @@ import numpy as np
 import mysql
 import mysql.connector
 import joblib
+from joblib import load
 import geopandas as gpd
 import folium
 import json
-
+from PIL import Image
 from datetime import datetime
 
 def main():
 
+
     menu = ['Inicio', 'Valores climatológicos por comunidad', 'Comparador de valores climatológicos',
-            'Mapa coroplético', 'Predicción meteorológica', 'Diagrama MYSQL: Base de datos']
+            'Mapa coroplético', 'Predicción meteorológica', 'Diagrama MYSQL: Base de datos',"Facebook Prophet", 'About']
 
     choice = st.sidebar.selectbox("Selecciona una opción", menu, key="menu_selectbox_unique")
 
@@ -45,14 +49,14 @@ def main():
         </style>
     """, unsafe_allow_html=True)
 
-
+    @st.cache_data
     def consulta_sql(query):
 
             database = "AEMET"
             db = mysql.connector.connect(
                 host="localhost",
                 user="root",
-                password="nueva_contraseña",
+                password= st.secrets["database_password"],
                 database=database
             )
 
@@ -69,19 +73,67 @@ def main():
             return pd.DataFrame(data, columns=columns)
 
     if choice == "Inicio":
-        st.image(
-            image="https://facuso.es/wp-content/uploads/2023/09/6de3b76f2eeed4e2edfa5420ad9630bd.jpg",
-            caption="Imagen oficial de la AEMET",
-            width=350,
-            use_column_width=True
+        st.markdown(
+            """
+            <div style="text-align: center;">
+                <img src="https://facuso.es/wp-content/uploads/2023/09/6de3b76f2eeed4e2edfa5420ad9630bd.jpg" 
+                     alt="Imagen oficial de la AEMET" 
+                     width="250">
+                <p>Imagen oficial de la AEMET</p>
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
+        # Introducción
         st.markdown(
-            "### Bienvenido a la web explorativa basada en datos de la AEMET(Agencia Estatal Meteorológica), donde podrás explorar y comparar datos históricos de España desde 2014.")
+            "##### Bienvenido/a a la plataforma de exploración de datos de la AEMET (Agencia Estatal Meteorológica de España).")
+
         st.markdown(
-            "#### A tu izquierda encuentrorás varias secciones, en donde cada apartado tendrá una breve explicación")
+            "##### España, con su diversidad climática y variada geografía, ofrece un rico panorama meteorológico en donde te encontrarás con temperaturas muy dispersas entre ellas en varios puntos geográfico. ")
+        st.markdown("A tu izquierda encontrarás varias secciones, en donde cada apartado tendrá una breve introducción")
+        st.markdown(
+            "En este sitio, podrás explorar y comparar datos históricos desde 2014 para obtener una visión profunda del clima en nuestro país.")
 
+        # Crear 3 columnas para las imágenes
+        col1, col2, col3 = st.columns(3)
 
+        # Añadir imágenes a cada columna con un tamaño mayor
+        with col1:
+            st.image(
+                "https://i.pinimg.com/originals/73/93/14/739314e72faa8f68bc12a29dcf0ce07c.jpg",
+                caption="Ordesa y Monte Perdido",
+                width=225  # Ajusta el ancho según sea necesario
+            )
+            st.image(
+                "https://fascinatingspain.com/wp-content/uploads/benasque_nieve.jpg",
+                caption="Benasque",
+                width=225  # Ajusta el ancho según sea necesario
+            )
+
+        with col2:
+            st.image(
+                "https://www.viajes.com/blog/wp-content/uploads/2021/09/sea-6580532_1920.jpg",
+                caption="Galicia, tierra de Meigas",
+                width=225  # Ajusta el ancho según sea necesario
+            )
+            st.image(
+                "https://i.pinimg.com/originals/cd/14/c8/cd14c8b90c06f714899d0d17e7d7fcd4.jpg",
+                caption="Mallorca, Cala Egos - Cala d'Or",
+                width=225  # Ajusta el ancho según sea necesario
+            )
+
+        with col3:
+            st.image(
+                "https://palenciaturismo.es/system/files/Monta%C3%B1aPalentinaGaleria5.jpg",
+                caption="Palencia",
+                width=225  # Ajusta el ancho según sea necesario
+            )
+            st.image(
+                "https://i.pinimg.com/originals/d8/3a/f2/d83af2c8d615f0a8393ef3eeb9325435.jpg",
+                caption="Asturias",
+                width=225  # Ajusta el ancho según sea necesario
+            )
     if choice == "Valores climatológicos por comunidad":
         st.header("Valores Climatológicos por Comunidad")
 
@@ -242,7 +294,7 @@ def main():
             db = mysql.connector.connect(
                 host="localhost",
                 user="root",
-                password="nueva_contraseña",
+                password= st.secrets["database_password"],
                 database=database
             )
 
@@ -490,6 +542,95 @@ def main():
         st_folium(mapa_espana, width=725)
 
     # HASTA AQUÍ TODO FUNCIONA.
+    if choice == "Facebook Prophet":
+
+
+        # Configuración de la página
+        st.title("Predicciones Climatológicas")
+
+        # Títulos de la aplicación
+        st.subheader("Modelos Predictivos de Facebook Prophet")
+        st.write("Cargue modelos preentrenados para realizar predicciones sobre los datos reales.")
+
+
+        # Función para cargar modelos .pkl
+        def load_model(file_path):
+            return load(file_path)
+
+        # Carga de modelos
+        models = {
+            "Semestres": load_model("prophet_biannual.pkl"),
+            "Trimestres": load_model("prophet_quarterly.pkl"),
+            "Meses": load_model("prophet_monthly.pkl"),
+            "Semanas": load_model("prophet_weekly.pkl"),
+            "Días": load_model("prophet_daily.pkl")
+        }
+
+        # Input de datos reales (simulamos que provienen de una query)
+        query1 = """
+            SELECT fecha, tmed
+            FROM valores_climatologicos
+             """
+
+        # Simulación de datos obtenidos (reemplaza esto por tu extracción real de datos)
+        data_real = consulta_sql(query1)
+        st.image("https://estaticos-cdn.prensaiberica.es/clip/c086f7c2-e053-4e0a-889e-8bbb4f55197f_16-9-discover-aspect-ratio_default_0.webp",
+                caption="Temperaturas España",
+                width=600  # Ajusta el ancho según sea necesario
+        )
+
+        # Conversión al formato requerido por Prophet
+        data_real.rename(columns={"fecha": "ds", "tmed": "y"}, inplace=True)
+
+        # Selección del modelo
+        model_choice = st.selectbox(
+            "Seleccione el modelo que desee utilizar:",
+            list(models.keys())
+        )
+
+        times = {"Mañana" : 1,
+                 "Semana" : 7,
+                 "Quincenal" : 14,
+                 "Mensual" : 30}
+
+        times_choice = st.selectbox("Seleccione el rango de tiempo que desee predecir:",
+                                    list(times.keys()))
+
+        st.write("**Predicción de la temperatura media de mañana según los distintos modelos.**",
+                 )
+
+        # Predicción con el modelo seleccionado
+        if st.button("Predecir"):
+
+            model = models[model_choice]  # Asegúrate de que este es un modelo Prophet
+            future = model.make_future_dataframe(periods=times[times_choice], freq='D')
+            forecast = model.predict(future)
+
+            st.write(f"**Temperatura para {times_choice} mediante el modelo  {model_choice}:**")
+            forecast_reset = forecast[['ds', 'yhat']].tail(times[times_choice]).reset_index(drop=True)
+            forecast_reset.index = range(1, len(forecast_reset) + 1)
+            forecast_reset['yhat'] = forecast_reset['yhat'].round(2).astype(str) + " ºC"
+            forecast_reset['ds'] = forecast_reset['ds'].dt.date
+            forecast_reset = forecast_reset.rename(columns={"ds": "Fecha", "yhat": "Temperatura media"})
+            st.dataframe(forecast_reset[['Fecha', 'Temperatura media']].tail(times[times_choice]))
+
+            st.write("**Gráfico de predicciones:**")
+
+            # Crear el gráfico
+            fig = model.plot(forecast)
+
+            # Resaltar la zona de predicción con color
+            plt.fill_between(forecast['ds'], forecast['yhat_lower'], forecast['yhat_upper'], color='gray', alpha=0.2)
+
+            # Agregar título y etiquetas
+            plt.title(f"Predicción de temperatura para {times_choice}")
+            plt.xlabel("Fecha")
+            plt.ylabel("Temperatura (ºC)")
+
+            # Mostrar el gráfico en Streamlit
+            st.pyplot(fig)
+
+
 
     if choice == "Predicción meteorológica":
         def predict_temperature(model_path, scaler_path, input_data):
@@ -574,6 +715,46 @@ def main():
     
     Provincia_id: índice asignado al valor provincia.""")
 
+        st.subheader("""Además de esta tabla surgen existen otras tablas relacionadas con esta llamadas:
+        
+        indicativos: con una columna indicativo_id para identificar el número de celda y otra con el 
+        indicativo de estación climatológica. 
+                     
+        ciudades:con una columna ciudad_id para identificar el número de celda y otra con la ciudad 
+        de la medición. 
+                     
+        provincias: con una columna provincia_id para identificar el número de celda y otra con la 
+        provincia de la medición.""")
+
+
+    if choice == "About":
+        st.title("Contacto: ✉️📬")
+        st.subheader("Este proyecto ha sido desarrollado por los alumnos del curso de Data Science & IA:")
+
+        # Redimensionar las imágenes a un tamaño cuadrado
+        size = (300, 300)  # Define el tamaño deseado (ancho, alto)
+
+        estela_img = Image.open("Estela.jpeg").resize(size)
+        pablo_img = Image.open("Pablo Petidier.jpeg").resize(size)
+
+        # Crear dos columnas
+        col1, col2 = st.columns(2)
+
+        # Primera columna
+        with col1:
+            st.image(estela_img, caption="Estela Mojena Ávila", use_column_width=False)
+            st.write("📧 **Correo:** estelamojenaavila@gmail.com")
+            st.write("📞 **Teléfono:** +34 622 68 33 95")
+            st.markdown("💼 **LinkedIn:** [Estela Mojena Ávila](https://www.linkedin.com/in/estela-mojena-avila/)")
+            st.write("💻 **GitHub:** https://github.com/Estela8")
+
+        # Segunda columna
+        with col2:
+            st.image(pablo_img, caption="Pablo Petidier Smit", use_column_width=False)
+            st.write("📧 **Correo:** petidiersmit@gmail.com")
+            st.write("📞 **Teléfono:** +34 624 10 85 03")
+            st.markdown("💼 **LinkedIn:** [Pablo Petidier Smit](https://www.linkedin.com/in/pablopetidier/)")
+            st.write("💻 **GitHub:** https://github.com/ppswns1988")
 
 if __name__ == "__main__":
     main()
