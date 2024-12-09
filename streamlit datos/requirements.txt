@@ -1,9 +1,0 @@
-pandas
-numpy
-requests
-streamlit
-matplotlib
-mysql-connector-python
-plotly
-geopandas
-tensorflow
